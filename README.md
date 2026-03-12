@@ -7,54 +7,65 @@
 | |\  | (_) | | (_| | |_| |
 |_| \_|\___/|_|\__, |\__,_|
                |___/
-Versi 0.1.0
+v0.2.0-alpha
 ```
 
-Nolqu adalah bahasa pemrograman yang dirancang agar kode mudah dibaca seperti
-membaca kalimat biasa. Tujuannya satu: menulis program tanpa harus berjuang
-melawan syntax. Cocok untuk belajar konsep pemrograman dari nol, maupun untuk
-developer yang ingin bahasa yang tidak bawel.
+Nolqu is a programming language designed so that code reads like plain sentences.
+One goal: write programs without fighting the syntax. Great for learning programming
+from scratch, or for developers who want a language that stays out of the way.
 
 ---
 
-## Instalasi
+## Installation
+
+### Linux / macOS
 
 ```bash
 git clone https://github.com/Nadzil123/Nolqu.git
 cd Nolqu
 make
-sudo make install   # pasang ke /usr/local/bin/nq
+sudo make install   # install to /usr/local/bin/nq
 ```
 
----
-
-## Penggunaan
+### Termux (Android)
 
 ```bash
-nq program.nq          # Jalankan program
-nq run program.nq      # Jalankan program (alternatif)
-nq repl                # Mode interaktif (REPL)
-nq version             # Tampilkan versi
-nq help                # Tampilkan bantuan
+pkg update && pkg install git clang make
+git clone https://github.com/Nadzil123/Nolqu.git
+cd Nolqu
+make
+cp nq $PREFIX/bin/
 ```
 
 ---
 
-## Sintaks Dasar
+## Usage
 
-### Variabel
-
-```nolqu
-let nama = "Budi"
-let umur = 25
-let aktif = true
-let kosong = nil
-
-print nama
-print umur
+```bash
+nq program.nq          # Run a program
+nq run program.nq      # Run a program (alternative)
+nq repl                # Interactive REPL mode
+nq version             # Show version
+nq help                # Show help
 ```
 
-### Operasi Aritmatika
+---
+
+## Basic Syntax
+
+### Variables
+
+```nolqu
+let name = "Alice"
+let age  = 25
+let active = true
+let empty  = nil
+
+print name
+print age
+```
+
+### Arithmetic
 
 ```nolqu
 let x = 10
@@ -67,33 +78,44 @@ print x / y    # 3.33333...
 print x % y    # 1
 ```
 
-### Konkatenasi Teks
+### String Concatenation
 
 ```nolqu
-let salam = "Halo, " .. "Dunia" .. "!"
-print salam    # Halo, Dunia!
+let greeting = "Hello, " .. "World" .. "!"
+print greeting    # Hello, World!
 
-let angka = 42
-print "Jawabannya adalah: " .. angka
+let n = 42
+print "The answer is: " .. n
 ```
 
-### Kondisi
+### User Input (new in v0.2.0)
 
 ```nolqu
-let nilai = 75
+let name = input("What is your name? ")
+print "Hello, " .. name .. "!"
 
-if nilai >= 90
-  print "Nilai A"
+let age_str = input("How old are you? ")
+let age = num(age_str)
+print "Next year you will be " .. age + 1
+```
+
+### Conditionals
+
+```nolqu
+let score = 75
+
+if score >= 90
+  print "Grade A"
 else
-  if nilai >= 75
-    print "Nilai B"
+  if score >= 75
+    print "Grade B"
   else
-    print "Nilai C"
+    print "Grade C"
   end
 end
 ```
 
-### Perulangan
+### Loops
 
 ```nolqu
 let i = 1
@@ -103,83 +125,105 @@ loop i <= 5
 end
 ```
 
-### Fungsi
+### Functions
 
 ```nolqu
-function sapa(nama)
-  return "Halo, " .. nama .. "!"
+function greet(name)
+  return "Hello, " .. name .. "!"
 end
 
-print sapa("Dunia")
+print greet("World")
 
-function faktorial(n)
+function factorial(n)
   if n <= 1
     return 1
   end
-  return n * faktorial(n - 1)
+  return n * factorial(n - 1)
 end
 
-print faktorial(5)    # 120
+print factorial(5)    # 120
 ```
 
-### Logika Boolean
+### Boolean Logic
 
 ```nolqu
 let a = 10
 let b = 20
 
 if a > 0 and b > 0
-  print "Keduanya positif"
+  print "Both positive"
 end
 
 if a > 100 or b > 10
-  print "Salah satu benar"
+  print "At least one is true"
 end
 
 if not false
-  print "Ini selalu tampil"
+  print "This always prints"
 end
 ```
 
 ---
 
-## Tipe Data
+## Built-in Functions
 
-| Tipe      | Contoh                | Keterangan                 |
-|-----------|-----------------------|----------------------------|
-| `angka`   | `42`, `3.14`, `-5`    | 64-bit floating point      |
-| `teks`    | `"Halo Dunia"`        | String Unicode immutable   |
-| `boolean` | `true`, `false`       | Nilai logika               |
-| `nil`     | `nil`                 | Tidak ada nilai            |
-| `fungsi`  | `function nama() ...` | Fungsi                     |
+| Function         | Description                                          |
+|------------------|------------------------------------------------------|
+| `input(prompt?)` | Read a line from stdin. Optional prompt string.      |
+| `str(value)`     | Convert any value to a string.                       |
+| `num(value)`     | Convert a string to a number. Returns nil if invalid.|
+| `type(value)`    | Return the type name of a value as a string.         |
 
----
+```nolqu
+print type(42)        # number
+print type("hello")   # string
+print type(true)      # bool
+print type(nil)       # nil
 
-## Keyword
-
-```
-let       — deklarasi variabel
-print     — cetak ke output
-if        — kondisi
-else      — alternatif kondisi
-loop      — perulangan (while-style)
-function  — deklarasi fungsi
-return    — kembalikan nilai
-import    — impor file
-end       — tutup blok
-true      — nilai boolean benar
-false     — nilai boolean salah
-nil       — nilai kosong
-and       — logika AND
-or        — logika OR
-not       — negasi logika
+print str(99)         # "99"
+let n = num("3.14")
+print n + 1           # 4.14
 ```
 
 ---
 
-## Contoh Program Lengkap
+## Data Types
 
-### Deret Fibonacci
+| Type       | Example               | Description                  |
+|------------|-----------------------|------------------------------|
+| `number`   | `42`, `3.14`, `-5`    | 64-bit floating point        |
+| `string`   | `"Hello World"`       | Immutable Unicode string     |
+| `bool`     | `true`, `false`       | Boolean value                |
+| `nil`      | `nil`                 | No value                     |
+| `function` | `function f() ...`    | Function                     |
+
+---
+
+## Keywords
+
+```
+let       — variable declaration
+print     — print to output
+if        — conditional
+else      — alternative branch
+loop      — condition-based loop (while-style)
+function  — function declaration
+return    — return a value from a function
+import    — import a file (not yet active)
+end       — close a block (if / loop / function)
+true      — boolean true
+false     — boolean false
+nil       — empty value
+and       — logical AND
+or        — logical OR
+not       — logical NOT
+```
+
+---
+
+## Full Example
+
+### Fibonacci
 
 ```nolqu
 function fibonacci(n)
@@ -218,9 +262,24 @@ loop n <= 20
 end
 ```
 
+### Interactive Greeting
+
+```nolqu
+let name = input("Your name: ")
+let age  = num(input("Your age: "))
+
+print "Hello, " .. name .. "!"
+
+if age >= 18
+  print "You are an adult."
+else
+  print "You are a minor."
+end
+```
+
 ---
 
-## Arsitektur
+## Architecture
 
 ```
 source.nq
@@ -228,25 +287,19 @@ source.nq
     ▼ Lexer         → Token stream
     ▼ Parser        → AST (Abstract Syntax Tree)
     ▼ Compiler      → Bytecode Chunk
-    ▼ Nolqu VM      → Eksekusi (stack-based)
+    ▼ Nolqu VM      → Execution (stack-based)
 ```
 
-- **Lexer** — Tokenisasi kode sumber
-- **Parser** — Recursive descent, menghasilkan AST
-- **Compiler** — Tree-walk compiler, emits bytecode
-- **VM** — Stack-based bytecode interpreter
-- **Runtime** — Binary `nq` mandiri (C99)
-
-### Struktur Project
+### Project Structure
 
 ```
 nolqu/
 ├── src/
-│   ├── common.h      — Common headers & macros
+│   ├── common.h      — Shared headers & macros
 │   ├── memory.h/.c   — Memory management
 │   ├── value.h/.c    — Value types (nil, bool, number, obj)
 │   ├── chunk.h/.c    — Bytecode chunk + disassembler
-│   ├── object.h/.c   — Heap objects (string, function)
+│   ├── object.h/.c   — Heap objects (string, function, native)
 │   ├── table.h/.c    — Hash table (globals, string interning)
 │   ├── lexer.h/.c    — Lexer / tokenizer
 │   ├── ast.h/.c      — AST node types
@@ -254,17 +307,20 @@ nolqu/
 │   ├── compiler.h/.c — AST → Bytecode compiler
 │   ├── vm.h/.c       — Nolqu Virtual Machine
 │   ├── repl.h/.c     — Interactive REPL
-│   └── main.c        — CLI entry point
+│   └── main.c        — CLI entry point (nq)
 ├── examples/
 │   ├── hello.nq
 │   ├── fibonacci.nq
 │   ├── functions.nq
-│   └── counter.nq
+│   ├── counter.nq
+│   └── input.nq
 ├── docs/
-│   ├── grammar.md    — Formal grammar (EBNF)
-│   └── vm_design.md  — VM & bytecode design
+│   ├── grammar.md
+│   └── vm_design.md
 ├── Makefile
-└── README.md
+├── README.md
+├── CHANGELOG.md
+└── LICENSE
 ```
 
 ---
@@ -274,36 +330,35 @@ nolqu/
 ```bash
 make          # Release build → ./nq
 make debug    # Debug build   → ./nq-debug
-make test     # Jalankan contoh program
-make clean    # Hapus build artifacts
+make test     # Run example programs
+make clean    # Remove build artifacts
 ```
 
 ---
 
 ## Error Messages
 
-Nolqu dirancang untuk memberikan pesan error yang jelas:
+Nolqu provides clear, actionable error messages:
 
 ```
-[ Error Runtime ] program.nq:5
-  Variabel 'x' tidak ditemukan.
-  Petunjuk: Apakah kamu sudah mendeklarasikannya dengan 'let x = ...'?
-```
-
-```
-[ Error Runtime ] program.nq:8
-  Pembagian dengan nol tidak diizinkan!
-  Petunjuk: Periksa nilai pembagi sebelum melakukan pembagian.
+[ Runtime Error ] program.nq:5
+  Undefined variable 'x'.
+  Hint: Did you declare it with 'let x = ...'?
 ```
 
 ```
-[ Error Runtime ] program.nq:12
-  Fungsi 'tambah' memerlukan 2 argumen, tapi diberikan 1.
+[ Runtime Error ] program.nq:8
+  Division by zero is not allowed.
+  Hint: Check the divisor value before dividing.
+```
+
+```
+[ Runtime Error ] program.nq:12
+  Function 'add' expects 2 argument(s), but got 1.
 ```
 
 ---
 
-## Lisensi
+## License
 
-MIT License — bebas digunakan dan dimodifikasi.
-# Nolqu
+MIT License — free to use and modify.

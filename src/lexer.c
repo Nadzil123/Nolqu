@@ -1,8 +1,5 @@
 #include "lexer.h"
 
-// ─────────────────────────────────────────────
-//  Keyword table
-// ─────────────────────────────────────────────
 typedef struct { const char* word; int len; TokenType type; } Keyword;
 
 static Keyword keywords[] = {
@@ -24,9 +21,6 @@ static Keyword keywords[] = {
     {NULL,       0, TK_IDENT},
 };
 
-// ─────────────────────────────────────────────
-//  Lexer helpers
-// ─────────────────────────────────────────────
 void initLexer(Lexer* lex, const char* source) {
     lex->source  = source;
     lex->start   = source;
@@ -34,11 +28,11 @@ void initLexer(Lexer* lex, const char* source) {
     lex->line    = 1;
 }
 
-static bool   isAtEnd(Lexer* lex)    { return *lex->current == '\0'; }
-static char   peek(Lexer* lex)       { return *lex->current; }
-static char   peekNext(Lexer* lex)   { return isAtEnd(lex) ? '\0' : lex->current[1]; }
-static char   advance(Lexer* lex)    { return *lex->current++; }
-static bool   match(Lexer* lex, char c) {
+static bool isAtEnd(Lexer* lex)    { return *lex->current == '\0'; }
+static char peek(Lexer* lex)       { return *lex->current; }
+static char peekNext(Lexer* lex)   { return isAtEnd(lex) ? '\0' : lex->current[1]; }
+static char advance(Lexer* lex)    { return *lex->current++; }
+static bool matchChar(Lexer* lex, char c) {
     if (isAtEnd(lex) || *lex->current != c) return false;
     lex->current++;
     return true;
@@ -64,18 +58,14 @@ static Token errorToken(Lexer* lex, const char* msg) {
     return t;
 }
 
-// Skip whitespace (spaces, tabs, carriage returns) and comments
-// STOP at newlines — they are significant tokens
 static void skipWhitespace(Lexer* lex) {
     for (;;) {
         char c = peek(lex);
         switch (c) {
-            case ' ':
-            case '\t':
-            case '\r':
+            case ' ': case '\t': case '\r':
                 advance(lex);
                 break;
-            case '#': // single-line comment
+            case '#':
                 while (!isAtEnd(lex) && peek(lex) != '\n') advance(lex);
                 break;
             default:
@@ -84,30 +74,26 @@ static void skipWhitespace(Lexer* lex) {
     }
 }
 
-// ─────────────────────────────────────────────
-//  Specific token scanners
-// ─────────────────────────────────────────────
 static Token scanString(Lexer* lex) {
     while (!isAtEnd(lex) && peek(lex) != '"') {
         if (peek(lex) == '\n') lex->line++;
         if (peek(lex) == '\\') {
-            advance(lex); // skip escape char
+            advance(lex);
             if (!isAtEnd(lex)) advance(lex);
         } else {
             advance(lex);
         }
     }
-    if (isAtEnd(lex)) {
-        return errorToken(lex, "String tidak ditutup. Apakah kamu lupa tanda '\"' di akhir?");
-    }
-    advance(lex); // closing "
+    if (isAtEnd(lex))
+        return errorToken(lex, "Unterminated string. Did you forget the closing '\"'?");
+    advance(lex);
     return makeToken(lex, TK_STRING);
 }
 
 static Token scanNumber(Lexer* lex) {
     while (isdigit(peek(lex))) advance(lex);
     if (peek(lex) == '.' && isdigit(peekNext(lex))) {
-        advance(lex); // consume '.'
+        advance(lex);
         while (isdigit(peek(lex))) advance(lex);
     }
     return makeToken(lex, TK_NUMBER);
@@ -116,7 +102,6 @@ static Token scanNumber(Lexer* lex) {
 static Token scanIdent(Lexer* lex) {
     while (isalnum(peek(lex)) || peek(lex) == '_') advance(lex);
     int len = (int)(lex->current - lex->start);
-    // Check keywords
     for (int i = 0; keywords[i].word != NULL; i++) {
         if (keywords[i].len == len &&
             memcmp(lex->start, keywords[i].word, (size_t)len) == 0) {
@@ -126,9 +111,6 @@ static Token scanIdent(Lexer* lex) {
     return makeToken(lex, TK_IDENT);
 }
 
-// ─────────────────────────────────────────────
-//  Main tokenizer
-// ─────────────────────────────────────────────
 Token nextToken(Lexer* lex) {
     skipWhitespace(lex);
     lex->start = lex->current;
@@ -137,60 +119,46 @@ Token nextToken(Lexer* lex) {
 
     char c = advance(lex);
 
-    // Identifiers and keywords
     if (isalpha(c) || c == '_') return scanIdent(lex);
-    // Numbers
     if (isdigit(c)) return scanNumber(lex);
 
     switch (c) {
-        case '\n':
-            lex->line++;
-            return makeToken(lex, TK_NEWLINE);
-
-        case '+': return makeToken(lex, TK_PLUS);
-        case '-': return makeToken(lex, TK_MINUS);
-        case '*': return makeToken(lex, TK_STAR);
-        case '/': return makeToken(lex, TK_SLASH);
-        case '%': return makeToken(lex, TK_PERCENT);
-        case '(': return makeToken(lex, TK_LPAREN);
-        case ')': return makeToken(lex, TK_RPAREN);
-        case ',': return makeToken(lex, TK_COMMA);
-        case '[': return makeToken(lex, TK_LBRACKET);
-        case ']': return makeToken(lex, TK_RBRACKET);
-
-        case '=':
-            return makeToken(lex, match(lex, '=') ? TK_EQEQ : TK_EQ);
+        case '\n': lex->line++; return makeToken(lex, TK_NEWLINE);
+        case '+':  return makeToken(lex, TK_PLUS);
+        case '-':  return makeToken(lex, TK_MINUS);
+        case '*':  return makeToken(lex, TK_STAR);
+        case '/':  return makeToken(lex, TK_SLASH);
+        case '%':  return makeToken(lex, TK_PERCENT);
+        case '(':  return makeToken(lex, TK_LPAREN);
+        case ')':  return makeToken(lex, TK_RPAREN);
+        case ',':  return makeToken(lex, TK_COMMA);
+        case '[':  return makeToken(lex, TK_LBRACKET);
+        case ']':  return makeToken(lex, TK_RBRACKET);
+        case '=':  return makeToken(lex, matchChar(lex, '=') ? TK_EQEQ  : TK_EQ);
+        case '<':  return makeToken(lex, matchChar(lex, '=') ? TK_LTEQ  : TK_LT);
+        case '>':  return makeToken(lex, matchChar(lex, '=') ? TK_GTEQ  : TK_GT);
         case '!':
-            if (match(lex, '=')) return makeToken(lex, TK_BANGEQ);
-            return errorToken(lex, "Karakter '!' tidak valid. Maksudmu '!='?");
-        case '<':
-            return makeToken(lex, match(lex, '=') ? TK_LTEQ : TK_LT);
-        case '>':
-            return makeToken(lex, match(lex, '=') ? TK_GTEQ : TK_GT);
+            if (matchChar(lex, '=')) return makeToken(lex, TK_BANGEQ);
+            return errorToken(lex, "Invalid character '!'. Did you mean '!='?");
         case '.':
-            if (match(lex, '.')) return makeToken(lex, TK_DOTDOT);
-            return errorToken(lex, "Karakter '.' tidak valid. Mungkin maksudmu '..' untuk concat?");
+            if (matchChar(lex, '.')) return makeToken(lex, TK_DOTDOT);
+            return errorToken(lex, "Invalid character '.'. Did you mean '..' for string concatenation?");
         case '"':
             return scanString(lex);
-
         default: {
-            // Build friendly error message
             static char errbuf[64];
             snprintf(errbuf, sizeof(errbuf),
-                "Karakter tidak dikenal: '%c' (ASCII %d)", c, (int)c);
+                "Unknown character: '%c' (ASCII %d)", c, (int)c);
             return errorToken(lex, errbuf);
         }
     }
 }
 
-// ─────────────────────────────────────────────
-//  Debug helpers
-// ─────────────────────────────────────────────
 const char* tokenTypeName(TokenType t) {
     switch (t) {
-        case TK_NUMBER:   return "ANGKA";
-        case TK_STRING:   return "TEKS";
-        case TK_IDENT:    return "NAMA";
+        case TK_NUMBER:   return "NUMBER";
+        case TK_STRING:   return "STRING";
+        case TK_IDENT:    return "IDENTIFIER";
         case TK_LET:      return "let";
         case TK_PRINT:    return "print";
         case TK_IF:       return "if";
@@ -222,7 +190,7 @@ const char* tokenTypeName(TokenType t) {
         case TK_LPAREN:   return "(";
         case TK_RPAREN:   return ")";
         case TK_COMMA:    return ",";
-        case TK_NEWLINE:  return "BARIS_BARU";
+        case TK_NEWLINE:  return "NEWLINE";
         case TK_EOF:      return "EOF";
         case TK_ERROR:    return "ERROR";
         default:          return "???";

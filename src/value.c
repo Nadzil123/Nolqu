@@ -2,9 +2,6 @@
 #include "memory.h"
 #include "object.h"
 
-// ─────────────────────────────────────────────
-//  ValueArray
-// ─────────────────────────────────────────────
 void initValueArray(ValueArray* arr) {
     arr->values   = NULL;
     arr->capacity = 0;
@@ -25,9 +22,6 @@ void freeValueArray(ValueArray* arr) {
     initValueArray(arr);
 }
 
-// ─────────────────────────────────────────────
-//  printValue
-// ─────────────────────────────────────────────
 void printValue(Value v) {
     switch (v.type) {
         case VAL_NIL:
@@ -38,7 +32,6 @@ void printValue(Value v) {
             break;
         case VAL_NUMBER: {
             double n = AS_NUMBER(v);
-            // Print integer-looking numbers without decimal point
             if (n == (long long)n && !isinf(n)) {
                 printf("%lld", (long long)n);
             } else {
@@ -52,39 +45,29 @@ void printValue(Value v) {
     }
 }
 
-// ─────────────────────────────────────────────
-//  valuesEqual
-// ─────────────────────────────────────────────
 bool valuesEqual(Value a, Value b) {
     if (a.type != b.type) return false;
     switch (a.type) {
         case VAL_NIL:    return true;
         case VAL_BOOL:   return AS_BOOL(a) == AS_BOOL(b);
         case VAL_NUMBER: return AS_NUMBER(a) == AS_NUMBER(b);
-        case VAL_OBJ:    return AS_OBJ(a) == AS_OBJ(b); // interned strings
+        case VAL_OBJ:    return AS_OBJ(a) == AS_OBJ(b);
         default:         return false;
     }
 }
 
-// ─────────────────────────────────────────────
-//  isTruthy — Nolqu truthiness rules:
-//  false and nil are falsy, everything else is truthy
-// ─────────────────────────────────────────────
 bool isTruthy(Value v) {
     if (IS_NIL(v))  return false;
     if (IS_BOOL(v)) return AS_BOOL(v);
-    return true; // numbers, strings, functions are truthy
+    return true;
 }
 
-// ─────────────────────────────────────────────
-//  Human-readable type name (for error messages)
-// ─────────────────────────────────────────────
 const char* valueTypeName(ValueType t) {
     switch (t) {
         case VAL_NIL:    return "nil";
         case VAL_BOOL:   return "bool";
-        case VAL_NUMBER: return "angka";
-        case VAL_OBJ:    return "objek";
-        default:         return "tidak diketahui";
+        case VAL_NUMBER: return "number";
+        case VAL_OBJ:    return "object";
+        default:         return "unknown";
     }
 }

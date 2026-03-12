@@ -12,7 +12,7 @@ void* nq_realloc(void* ptr, size_t old_size, size_t new_size) {
     if (result == NULL) {
         fprintf(stderr,
             NQ_COLOR_RED "[nolqu] " NQ_COLOR_RESET
-            "Keluar memori! Tidak dapat mengalokasikan %zu bytes.\n",
+            "Out of memory! Could not allocate %zu bytes.\n",
             new_size);
         exit(1);
     }

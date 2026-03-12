@@ -1,21 +1,18 @@
 # ───────────────────────────────────────────
-#  hello.nq — Program pertama Nolqu
+#  hello.nq — First Nolqu program
 # ───────────────────────────────────────────
 
-# Variabel teks
-let nama = "Dunia"
-print "Halo, " .. nama .. "!"
+let name = "World"
+print "Hello, " .. name .. "!"
 
-# Variabel angka
 let x = 10
 let y = 25
 print x + y
 
-# Kondisi
-let nilai = 85
+let score = 85
 
-if nilai >= 90
-print "Nilai A — Luar biasa!"
+if score >= 90
+  print "Grade A — Excellent!"
 else
-print "Nilai B — Bagus!"
+  print "Grade B — Good job!"
 end

@@ -14,9 +14,9 @@
 //  Nolqu Runtime Version
 // ─────────────────────────────────────────────
 #define NQ_VERSION_MAJOR 0
-#define NQ_VERSION_MINOR 1
+#define NQ_VERSION_MINOR 2
 #define NQ_VERSION_PATCH 0
-#define NQ_VERSION       "0.1.0"
+#define NQ_VERSION       "0.2.0"
 #define NQ_LANG_NAME     "Nolqu"
 
 // ─────────────────────────────────────────────
@@ -39,7 +39,7 @@
     nq_realloc((ptr), sizeof(type) * (old_cap), 0)
 
 // ─────────────────────────────────────────────
-//  ANSI color codes for error messages
+//  ANSI color codes
 // ─────────────────────────────────────────────
 #define NQ_COLOR_RED     "\033[1;31m"
 #define NQ_COLOR_YELLOW  "\033[1;33m"
@@ -50,7 +50,7 @@
 #define NQ_COLOR_BLUE    "\033[1;34m"
 
 // ─────────────────────────────────────────────
-//  Unused parameter suppression
+//  Suppress unused parameter warnings
 // ─────────────────────────────────────────────
 #define NQ_UNUSED(x) (void)(x)
 

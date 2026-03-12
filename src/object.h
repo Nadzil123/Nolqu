@@ -11,55 +11,70 @@
 typedef enum {
     OBJ_STRING,
     OBJ_FUNCTION,
+    OBJ_NATIVE,     // built-in native function (new in 0.2.0)
 } ObjType;
 
 // ─────────────────────────────────────────────
-//  Base object header — every heap object starts with this
+//  Base object header
 // ─────────────────────────────────────────────
 struct Obj {
-    ObjType   type;
-    struct Obj* next;  // intrusive linked list for GC tracking
-    bool      marked;  // GC mark bit
+    ObjType     type;
+    struct Obj* next;
+    bool        marked;
 };
 
 // ─────────────────────────────────────────────
 //  ObjString — interned immutable string
 // ─────────────────────────────────────────────
 struct ObjString {
-    Obj     obj;
-    int     length;
-    char*   chars;
+    Obj      obj;
+    int      length;
+    char*    chars;
     uint32_t hash;
 };
 
 // ─────────────────────────────────────────────
-//  ObjFunction — compiled function
+//  ObjFunction — compiled Nolqu function
 // ─────────────────────────────────────────────
 typedef struct ObjFunction {
     Obj        obj;
-    int        arity;     // number of parameters
-    Chunk*     chunk;     // bytecode for this function
-    ObjString* name;      // function name (NULL for script)
+    int        arity;
+    Chunk*     chunk;
+    ObjString* name;
 } ObjFunction;
 
 // ─────────────────────────────────────────────
-//  Type check macros for objects
+//  ObjNative — built-in C function (new in 0.2.0)
+// ─────────────────────────────────────────────
+typedef Value (*NativeFn)(int argc, Value* args);
+
+typedef struct {
+    Obj      obj;
+    NativeFn fn;
+    const char* name;
+    int      arity;  // -1 = variadic
+} ObjNative;
+
+// ─────────────────────────────────────────────
+//  Type check macros
 // ─────────────────────────────────────────────
 #define OBJ_TYPE(v)       (AS_OBJ(v)->type)
 #define IS_STRING(v)      (IS_OBJ(v) && OBJ_TYPE(v) == OBJ_STRING)
 #define IS_FUNCTION(v)    (IS_OBJ(v) && OBJ_TYPE(v) == OBJ_FUNCTION)
+#define IS_NATIVE(v)      (IS_OBJ(v) && OBJ_TYPE(v) == OBJ_NATIVE)
 
 #define AS_STRING(v)      ((ObjString*)AS_OBJ(v))
 #define AS_CSTRING(v)     (((ObjString*)AS_OBJ(v))->chars)
 #define AS_FUNCTION(v)    ((ObjFunction*)AS_OBJ(v))
+#define AS_NATIVE(v)      ((ObjNative*)AS_OBJ(v))
 
 // ─────────────────────────────────────────────
-//  Global object list head (for GC)
+//  Global object list (for GC)
 // ─────────────────────────────────────────────
 extern Obj* nq_all_objects;
 
 // ─────────────────────────────────────────────
-//  String interning table (global)
+//  String interning table
 // ─────────────────────────────────────────────
 typedef struct {
     ObjString** entries;
@@ -78,16 +93,16 @@ void tableAddString(StringTable* t, ObjString* s);
 //  Object creation
 // ─────────────────────────────────────────────
 ObjString*   copyString(const char* chars, int length);
-ObjString*   takeString(char* chars, int length);  // takes ownership
+ObjString*   takeString(char* chars, int length);
 ObjFunction* newFunction(void);
+ObjNative*   newNative(NativeFn fn, const char* name, int arity);
 
 // ─────────────────────────────────────────────
-//  Object utilities
+//  Utilities
 // ─────────────────────────────────────────────
 void printObject(Value v);
 void freeObject(Obj* obj);
 void freeAllObjects(void);
-
 const char* objectTypeName(ObjType t);
 
 #endif // NQ_OBJECT_H

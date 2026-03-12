@@ -50,8 +50,8 @@ $(TARGET): $(OBJECTS_RELEASE)
 	@echo "  LD    $(TARGET)"
 	@$(CC) $(CFLAGS_RELEASE) -o $@ $^ $(LDFLAGS)
 	@echo ""
-	@echo "  ✓ Build berhasil: ./$(TARGET)"
-	@echo "    Gunakan: ./$(TARGET) program.nq"
+	@echo "  ✓ Build successful: ./$(TARGET)"
+	@echo "    Usage: ./$(TARGET) program.nq"
 	@echo "    REPL:    ./$(TARGET) repl"
 
 $(OBJDIR)/release/%.o: $(SRCDIR)/%.c
@@ -92,7 +92,7 @@ uninstall:
 
 # ─── Test ─────────────────────────────────────────────────────
 test: release
-	@echo "── Menjalankan program contoh ──"
+	@echo "── Running example programs ──"
 	@./$(TARGET) examples/hello.nq
 	@echo ""
 	@./$(TARGET) examples/fibonacci.nq

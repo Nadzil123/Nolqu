@@ -1,35 +1,35 @@
 # ───────────────────────────────────────────
-#  counter.nq — Contoh loop dan kondisi
+#  counter.nq — Loops and conditionals
 # ───────────────────────────────────────────
 
-print "Hitung mundur:"
-let hitung = 10
+print "Countdown:"
+let count = 10
 
-loop hitung > 0
-    print hitung
-    hitung = hitung - 1
+loop count > 0
+  print count
+  count = count - 1
 end
 
-print "Selesai!"
+print "Done!"
 
 # FizzBuzz
 print ""
-print "FizzBuzz 1 sampai 20:"
+print "FizzBuzz 1 to 20:"
 
 let n = 1
 loop n <= 20
-    if n % 15 == 0
-        print "FizzBuzz"
+  if n % 15 == 0
+    print "FizzBuzz"
+  else
+    if n % 3 == 0
+      print "Fizz"
     else
-        if n % 3 == 0
-            print "Fizz"
-        else
-            if n % 5 == 0
-                print "Buzz"
-            else
-                print n
-            end
-        end
+      if n % 5 == 0
+        print "Buzz"
+      else
+        print n
+      end
     end
-    n = n + 1
+  end
+  n = n + 1
 end
