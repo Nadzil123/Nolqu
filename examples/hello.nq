@@ -1,0 +1,21 @@
+# ───────────────────────────────────────────
+#  hello.nq — Program pertama Nolqu
+# ───────────────────────────────────────────
+
+# Variabel teks
+let nama = "Dunia"
+print "Halo, " .. nama .. "!"
+
+# Variabel angka
+let x = 10
+let y = 25
+print x + y
+
+# Kondisi
+let nilai = 85
+
+if nilai >= 90
+print "Nilai A — Luar biasa!"
+else
+print "Nilai B — Bagus!"
+end

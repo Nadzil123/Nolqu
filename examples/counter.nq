@@ -1,0 +1,35 @@
+# ───────────────────────────────────────────
+#  counter.nq — Contoh loop dan kondisi
+# ───────────────────────────────────────────
+
+print "Hitung mundur:"
+let hitung = 10
+
+loop hitung > 0
+    print hitung
+    hitung = hitung - 1
+end
+
+print "Selesai!"
+
+# FizzBuzz
+print ""
+print "FizzBuzz 1 sampai 20:"
+
+let n = 1
+loop n <= 20
+    if n % 15 == 0
+        print "FizzBuzz"
+    else
+        if n % 3 == 0
+            print "Fizz"
+        else
+            if n % 5 == 0
+                print "Buzz"
+            else
+                print n
+            end
+        end
+    end
+    n = n + 1
+end

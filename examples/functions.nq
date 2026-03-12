@@ -1,0 +1,48 @@
+# ───────────────────────────────────────────
+#  functions.nq — Contoh penggunaan fungsi
+# ───────────────────────────────────────────
+
+# Fungsi penjumlahan
+function tambah(a, b)
+    return a + b
+end
+
+# Fungsi perkalian
+function kali(a, b)
+    return a * b
+end
+
+# Fungsi cek genap/ganjil
+function genap(n)
+    if n % 2 == 0
+        return true
+    end
+    return false
+end
+
+# Fungsi sapa
+function sapa(nama)
+    return "Halo, " .. nama .. "!"
+end
+
+print tambah(5, 10)
+print kali(4, 7)
+print sapa("Nadzil")
+
+let angka = 42
+if genap(angka)
+    print angka .. " adalah angka genap"
+else
+    print angka .. " adalah angka ganjil"
+end
+
+# Hitung faktorial
+function faktorial(n)
+    if n <= 1
+        return 1
+    end
+    return n * faktorial(n - 1)
+end
+
+print "5! = " .. faktorial(5)
+print "10! = " .. faktorial(10)
