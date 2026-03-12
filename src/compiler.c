@@ -2,6 +2,7 @@
 #include "memory.h"
 #include "object.h"
 #include "table.h"
+#include "parser.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -225,16 +226,16 @@ static void compileNode(ASTNode* node) {
         case NODE_IF: {
             compileExpr(node->data.if_stmt.cond);
             int then_jump = emitJump(OP_JUMP_IF_FALSE, line);
-            emit(OP_POP, line);
+            emit(OP_POP, line);                          // pop cond (true path)
             compileBlock(node->data.if_stmt.then_block);
-            int else_jump = -1;
-            if (node->data.if_stmt.else_block) else_jump = emitJump(OP_JUMP, line);
+            // Always emit a jump to skip the false-branch OP_POP,
+            // otherwise the true path falls through and corrupts locals.
+            int end_jump = emitJump(OP_JUMP, line);
             patchJumpAt(then_jump);
-            emit(OP_POP, line);
-            if (node->data.if_stmt.else_block) {
+            emit(OP_POP, line);                          // pop cond (false path)
+            if (node->data.if_stmt.else_block)
                 compileBlock(node->data.if_stmt.else_block);
-                patchJumpAt(else_jump);
-            }
+            patchJumpAt(end_jump);
             break;
         }
         case NODE_LOOP: {
@@ -289,9 +290,79 @@ static void compileNode(ASTNode* node) {
             compileExpr(node->data.set_index.value);
             emit(OP_SET_INDEX, line);
             break;
-        case NODE_IMPORT:
-            compileError(line, "'import' is not yet supported in this version.");
+        case NODE_IMPORT: {
+            const char* mod_path = node->data.import.path;
+
+            // Try path relative to current source file first, then CWD
+            char resolved[1024];
+            bool found = false;
+
+            // 1) relative to source file
+            if (src_path) {
+                const char* last_slash = strrchr(src_path, '/');
+                if (!last_slash) last_slash = strrchr(src_path, '\\');
+                if (last_slash) {
+                    int dir_len = (int)(last_slash - src_path + 1);
+                    snprintf(resolved, sizeof(resolved), "%.*s%s", dir_len, src_path, mod_path);
+                    if (strstr(resolved, ".nq") == NULL)
+                        strncat(resolved, ".nq", sizeof(resolved) - strlen(resolved) - 1);
+                    FILE* test = fopen(resolved, "r");
+                    if (test) { fclose(test); found = true; }
+                }
+            }
+            // 2) relative to CWD
+            if (!found) {
+                snprintf(resolved, sizeof(resolved), "%s", mod_path);
+                if (strstr(resolved, ".nq") == NULL)
+                    strncat(resolved, ".nq", sizeof(resolved) - strlen(resolved) - 1);
+                FILE* test = fopen(resolved, "r");
+                if (test) { fclose(test); found = true; }
+            }
+            if (!found) {
+                compileError(line, "Cannot find module '%s'.", mod_path);
+                break;
+            }
+
+            // Read file
+            FILE* f = fopen(resolved, "rb");
+            if (!f) { compileError(line, "Cannot open module '%s'.", resolved); break; }
+            fseek(f, 0, SEEK_END);
+            long size = ftell(f); rewind(f);
+            char* source = (char*)malloc((size_t)(size + 1));
+            size_t nread = fread(source, 1, (size_t)size, f);
+            source[nread] = '\0';
+            fclose(f);
+
+            // Parse module
+            Parser mod_parser;
+            initParser(&mod_parser, source, resolved);
+            ASTNode* mod_ast = parse(&mod_parser);
+            free(source);
+
+            if (mod_parser.had_error) {
+                freeNode(mod_ast);
+                compileError(line, "Errors in module '%s'.", resolved);
+                break;
+            }
+
+            // Compile module as a self-calling function
+            ObjFunction* mod_fn = newFunction();
+            mod_fn->name = copyString(resolved, (int)strlen(resolved));
+            CompilerCtx mod_ctx;
+            initCompilerCtx(&mod_ctx, mod_fn);
+            mod_ctx.scope_depth = 0;
+            compileBlock(mod_ast);
+            freeNode(mod_ast);
+            emit(OP_NIL, line);
+            emit(OP_RETURN, line);
+            ObjFunction* compiled_mod = endCompilerCtx();
+
+            int fn_idx = addConstant(currentChunk(), OBJ_VAL(compiled_mod));
+            emit2(OP_CONST, (uint8_t)fn_idx, line);
+            emit2(OP_CALL, 0, line);
+            emit(OP_POP, line);
             break;
+        }
         case NODE_BLOCK:
         case NODE_PROGRAM:
             compileBlock(node);

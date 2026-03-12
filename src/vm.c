@@ -116,6 +116,126 @@ static Value nativeContains(int argc, Value* args) {
 }
 
 // ─────────────────────────────────────────────
+//  stdlib: math
+// ─────────────────────────────────────────────
+static Value nativeSqrt(int argc, Value* args)  { if (argc!=1||!IS_NUMBER(args[0])) return NIL_VAL; return NUMBER_VAL(sqrt(AS_NUMBER(args[0]))); }
+static Value nativeFloor(int argc, Value* args) { if (argc!=1||!IS_NUMBER(args[0])) return NIL_VAL; return NUMBER_VAL(floor(AS_NUMBER(args[0]))); }
+static Value nativeCeil(int argc, Value* args)  { if (argc!=1||!IS_NUMBER(args[0])) return NIL_VAL; return NUMBER_VAL(ceil(AS_NUMBER(args[0]))); }
+static Value nativeRound(int argc, Value* args) { if (argc!=1||!IS_NUMBER(args[0])) return NIL_VAL; return NUMBER_VAL(round(AS_NUMBER(args[0]))); }
+static Value nativeAbs(int argc, Value* args)   { if (argc!=1||!IS_NUMBER(args[0])) return NIL_VAL; return NUMBER_VAL(fabs(AS_NUMBER(args[0]))); }
+static Value nativePow(int argc, Value* args)   { if (argc!=2||!IS_NUMBER(args[0])||!IS_NUMBER(args[1])) return NIL_VAL; return NUMBER_VAL(pow(AS_NUMBER(args[0]),AS_NUMBER(args[1]))); }
+static Value nativeMax(int argc, Value* args)   { if (argc!=2||!IS_NUMBER(args[0])||!IS_NUMBER(args[1])) return NIL_VAL; return NUMBER_VAL(AS_NUMBER(args[0])>AS_NUMBER(args[1])?AS_NUMBER(args[0]):AS_NUMBER(args[1])); }
+static Value nativeMin(int argc, Value* args)   { if (argc!=2||!IS_NUMBER(args[0])||!IS_NUMBER(args[1])) return NIL_VAL; return NUMBER_VAL(AS_NUMBER(args[0])<AS_NUMBER(args[1])?AS_NUMBER(args[0]):AS_NUMBER(args[1])); }
+
+// ─────────────────────────────────────────────
+//  stdlib: string
+// ─────────────────────────────────────────────
+
+// upper(s) — convert to uppercase
+static Value nativeUpper(int argc, Value* args) {
+    if (argc!=1||!IS_STRING(args[0])) return NIL_VAL;
+    ObjString* s = AS_STRING(args[0]);
+    char* buf = (char*)malloc((size_t)(s->length+1));
+    for (int i=0;i<s->length;i++) buf[i]=(char)toupper((unsigned char)s->chars[i]);
+    buf[s->length]='\0';
+    return OBJ_VAL(takeString(buf, s->length));
+}
+
+// lower(s) — convert to lowercase
+static Value nativeLower(int argc, Value* args) {
+    if (argc!=1||!IS_STRING(args[0])) return NIL_VAL;
+    ObjString* s = AS_STRING(args[0]);
+    char* buf = (char*)malloc((size_t)(s->length+1));
+    for (int i=0;i<s->length;i++) buf[i]=(char)tolower((unsigned char)s->chars[i]);
+    buf[s->length]='\0';
+    return OBJ_VAL(takeString(buf, s->length));
+}
+
+// slice(s, start, end) — substring [start, end)
+static Value nativeSlice(int argc, Value* args) {
+    if (argc<2||!IS_STRING(args[0])||!IS_NUMBER(args[1])) return NIL_VAL;
+    ObjString* s = AS_STRING(args[0]);
+    int start = (int)AS_NUMBER(args[1]);
+    int end   = (argc==3&&IS_NUMBER(args[2])) ? (int)AS_NUMBER(args[2]) : s->length;
+    if (start<0) start=s->length+start;
+    if (end<0)   end=s->length+end;
+    if (start<0) start=0;
+    if (end>s->length) end=s->length;
+    if (start>=end) return OBJ_VAL(copyString("",0));
+    return OBJ_VAL(copyString(s->chars+start, end-start));
+}
+
+// trim(s) — remove leading/trailing whitespace
+static Value nativeTrim(int argc, Value* args) {
+    if (argc!=1||!IS_STRING(args[0])) return NIL_VAL;
+    const char* c = AS_CSTRING(args[0]);
+    int len = (int)strlen(c);
+    int start=0, end=len-1;
+    while (start<=end && isspace((unsigned char)c[start])) start++;
+    while (end>=start && isspace((unsigned char)c[end]))   end--;
+    return OBJ_VAL(copyString(c+start, end-start+1));
+}
+
+// replace(s, old, new) — replace first occurrence
+static Value nativeReplace(int argc, Value* args) {
+    if (argc!=3||!IS_STRING(args[0])||!IS_STRING(args[1])||!IS_STRING(args[2])) return NIL_VAL;
+    const char* src  = AS_CSTRING(args[0]);
+    const char* old  = AS_CSTRING(args[1]);
+    const char* repl = AS_CSTRING(args[2]);
+    int src_len  = AS_STRING(args[0])->length;
+    int old_len  = AS_STRING(args[1])->length;
+    int repl_len = AS_STRING(args[2])->length;
+    if (old_len==0) return args[0];
+    char* found = strstr(src, old);
+    if (!found) return args[0];
+    int prefix = (int)(found - src);
+    int new_len = prefix + repl_len + (src_len - prefix - old_len);
+    char* buf = (char*)malloc((size_t)(new_len+1));
+    memcpy(buf,           src,    (size_t)prefix);
+    memcpy(buf+prefix,    repl,   (size_t)repl_len);
+    memcpy(buf+prefix+repl_len, found+old_len, (size_t)(src_len-prefix-old_len));
+    buf[new_len]='\0';
+    return OBJ_VAL(takeString(buf, new_len));
+}
+
+// split(s, sep) — split string into array
+static Value nativeSplit(int argc, Value* args) {
+    if (argc!=2||!IS_STRING(args[0])||!IS_STRING(args[1])) return NIL_VAL;
+    const char* src = AS_CSTRING(args[0]);
+    const char* sep = AS_CSTRING(args[1]);
+    int sep_len = AS_STRING(args[1])->length;
+    ObjArray* arr = newArray();
+    if (sep_len==0) {
+        // split into individual characters
+        for (int i=0; src[i]; i++)
+            arrayPush(arr, OBJ_VAL(copyString(src+i, 1)));
+        return OBJ_VAL(arr);
+    }
+    const char* cur = src;
+    const char* found;
+    while ((found = strstr(cur, sep)) != NULL) {
+        arrayPush(arr, OBJ_VAL(copyString(cur, (int)(found-cur))));
+        cur = found + sep_len;
+    }
+    arrayPush(arr, OBJ_VAL(copyString(cur, (int)strlen(cur))));
+    return OBJ_VAL(arr);
+}
+
+// startswith(s, prefix) / endswith(s, suffix)
+static Value nativeStartsWith(int argc, Value* args) {
+    if (argc!=2||!IS_STRING(args[0])||!IS_STRING(args[1])) return BOOL_VAL(false);
+    ObjString *s=AS_STRING(args[0]), *p=AS_STRING(args[1]);
+    if (p->length>s->length) return BOOL_VAL(false);
+    return BOOL_VAL(memcmp(s->chars, p->chars, (size_t)p->length)==0);
+}
+static Value nativeEndsWith(int argc, Value* args) {
+    if (argc!=2||!IS_STRING(args[0])||!IS_STRING(args[1])) return BOOL_VAL(false);
+    ObjString *s=AS_STRING(args[0]), *sf=AS_STRING(args[1]);
+    if (sf->length>s->length) return BOOL_VAL(false);
+    return BOOL_VAL(memcmp(s->chars+s->length-sf->length, sf->chars, (size_t)sf->length)==0);
+}
+
+// ─────────────────────────────────────────────
 //  VM init / free
 // ─────────────────────────────────────────────
 static void registerNative(VM* vm, const char* name, NativeFn fn, int arity) {
@@ -132,15 +252,34 @@ void initVM(VM* vm) {
     initStringTable(&nq_string_table);
 
     // Register built-in functions
-    registerNative(vm, "input",    nativeInput,    -1);
-    registerNative(vm, "str",      nativeStr,       1);
-    registerNative(vm, "num",      nativeNum,       1);
-    registerNative(vm, "type",     nativeType,      1);
-    registerNative(vm, "len",      nativeLen,       1);
-    registerNative(vm, "push",     nativePush,      2);
-    registerNative(vm, "pop",      nativePop,       1);
-    registerNative(vm, "remove",   nativeRemove,    2);
-    registerNative(vm, "contains", nativeContains,  2);
+    registerNative(vm, "input",      nativeInput,      -1);
+    registerNative(vm, "str",        nativeStr,         1);
+    registerNative(vm, "num",        nativeNum,         1);
+    registerNative(vm, "type",       nativeType,        1);
+    // array
+    registerNative(vm, "len",        nativeLen,         1);
+    registerNative(vm, "push",       nativePush,        2);
+    registerNative(vm, "pop",        nativePop,         1);
+    registerNative(vm, "remove",     nativeRemove,      2);
+    registerNative(vm, "contains",   nativeContains,    2);
+    // math
+    registerNative(vm, "sqrt",       nativeSqrt,        1);
+    registerNative(vm, "floor",      nativeFloor,       1);
+    registerNative(vm, "ceil",       nativeCeil,        1);
+    registerNative(vm, "round",      nativeRound,       1);
+    registerNative(vm, "abs",        nativeAbs,         1);
+    registerNative(vm, "pow",        nativePow,         2);
+    registerNative(vm, "max",        nativeMax,         2);
+    registerNative(vm, "min",        nativeMin,         2);
+    // string
+    registerNative(vm, "upper",      nativeUpper,       1);
+    registerNative(vm, "lower",      nativeLower,       1);
+    registerNative(vm, "slice",      nativeSlice,      -1); // 2 or 3 args
+    registerNative(vm, "trim",       nativeTrim,        1);
+    registerNative(vm, "replace",    nativeReplace,     3);
+    registerNative(vm, "split",      nativeSplit,       2);
+    registerNative(vm, "startswith", nativeStartsWith,  2);
+    registerNative(vm, "endswith",   nativeEndsWith,    2);
 }
 
 void freeVM(VM* vm) {

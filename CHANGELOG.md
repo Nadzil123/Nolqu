@@ -15,30 +15,55 @@
 - Negative indexing: `arr[-1]` returns the last element
 - Index assignment: `arr[0] = "new"`
 - String character indexing: `"hello"[0]` returns `"h"`
+- Built-ins: `len`, `push`, `pop`, `remove`, `contains`
 
-**New Built-in Functions**
-- `len(arr_or_string)` — return number of elements or string length
-- `push(arr, value)` — append value to end of array, returns the array
-- `pop(arr)` — remove and return the last element
-- `remove(arr, index)` — remove element at index, returns the removed value
-- `contains(arr, value)` — return `true` if value exists in array
+**Standard Library — Math**
+- `sqrt(n)` — square root
+- `floor(n)` — round down
+- `ceil(n)` — round up
+- `round(n)` — round to nearest
+- `abs(n)` — absolute value
+- `pow(base, exp)` — exponentiation
+- `max(a, b)` — larger of two values
+- `min(a, b)` — smaller of two values
+
+**Standard Library — String**
+- `upper(s)` — convert to uppercase
+- `lower(s)` — convert to lowercase
+- `slice(s, start, [end])` — substring with optional end index
+- `trim(s)` — remove leading and trailing whitespace
+- `replace(s, old, new)` — replace first occurrence
+- `split(s, sep)` — split into array by separator
+- `startswith(s, prefix)` — boolean prefix check
+- `endswith(s, suffix)` — boolean suffix check
+
+**Module System**
+- `import "path"` — load and execute a `.nq` file, making its globals available
+- Paths are resolved relative to the importing file, then relative to CWD
+- `.nq` extension is added automatically if omitted
+
+**Reusable Stdlib Modules**
+- `stdlib/math.nq` — `clamp`, `lerp`, `sign`
+- `stdlib/array.nq` — `map`, `filter`, `reduce`, `reverse`
+
+**New Examples**
+- `examples/arrays.nq` — array operations demo
+- `examples/stdlib.nq` — standard library demo
+- `examples/import_demo.nq` — module import demo
 
 **New Opcodes**
 - `OP_BUILD_ARRAY` — build array from N stack values
-- `OP_GET_INDEX`   — get value at index
-- `OP_SET_INDEX`   — set value at index
-
-**New Example**
-- `examples/arrays.nq` — demonstrates array literal, indexing, push/pop/remove/contains, dynamic building, and sum function
+- `OP_GET_INDEX` — get value at index
+- `OP_SET_INDEX` — set value at index
 
 ### Changed
 
-- `type()` built-in now returns `"array"` for array values
+- `type()` now returns `"array"` for array values
 - Version bumped to `0.3.0`
 
 ### Bug Fixes
 
-- (None)
+- Fixed stack corruption in `if` blocks without `else` inside functions. The false-branch `OP_POP` was being executed even on the true path, silently corrupting local variables. This caused incorrect behavior in functions using `if` inside `loop` (e.g. `filter`, `map`).
 
 ### Breaking Changes
 
