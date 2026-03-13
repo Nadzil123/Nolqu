@@ -1,9 +1,14 @@
 #include "object.h"
 #include "memory.h"
 #include "chunk.h"
+#include "gc.h"
 
 Obj* nq_all_objects = NULL;
 StringTable nq_string_table;
+
+// Weak reference to the running VM — set by runVM, used by GC trigger.
+// Forward-declared here to avoid circular includes.
+VM* nq_gc_vm = NULL;
 
 static uint32_t hashString(const char* key, int length) {
     uint32_t hash = 2166136261u;
@@ -62,6 +67,9 @@ void tableAddString(StringTable* t, ObjString* s) {
 }
 
 static Obj* allocObject(size_t size, ObjType type) {
+    // Trigger GC before allocating if threshold exceeded
+    nq_gc_maybe(nq_gc_vm);
+
     Obj* obj = (Obj*)nq_realloc(NULL, 0, size);
     obj->type   = type;
     obj->marked = false;

@@ -86,6 +86,10 @@ typedef struct {
 // ─────────────────────────────────────────────
 extern Obj* nq_all_objects;
 
+// Weak VM pointer used by GC trigger inside allocObject
+struct VM;
+extern struct VM* nq_gc_vm;
+
 // ─────────────────────────────────────────────
 //  String interning table
 // ─────────────────────────────────────────────

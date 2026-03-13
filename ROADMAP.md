@@ -41,12 +41,8 @@ Bugfix: slot-0 reservation missing for top-level script, causing block-local var
 
 ---
 
-## v0.8 — Garbage Collector
-**Focus:** Automatic memory management.
-
-- Mark-and-sweep garbage collector
-- Memory freed automatically during runtime
-- No more memory leaks on long-running programs
+## ✅ v0.8.0 — Garbage Collector *(Beta)*
+Mark-and-sweep GC. Automatic trigger at 1 MB threshold, grows to 2× surviving heap after each cycle. Marks all roots: stack, call frames, globals, pending thrown value. Recursively marks array items and function constants. `gc_collect()` builtin for manual trigger.
 
 ---
 
@@ -90,7 +86,7 @@ Bugfix: slot-0 reservation missing for top-level script, causing block-local var
 | v0.5 | Extended stdlib ✅ |
 | v0.6 | Error handling ✅ |
 | v0.7 | File I/O ✅ |
-| v0.8 | Garbage collector |
+| v0.8 | Garbage collector ✅ |
 | v0.9 | Stabilization |
 | v1.0.0-rc1 | Release candidate |
 | v1.0.0 | Stable release 🎉 |

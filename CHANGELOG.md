@@ -1,6 +1,48 @@
 # Changelog
 
-> ⚠️ **Warning:** Nolqu is still in **Alpha** stage. Syntax, behavior, and features may change at any time without notice. Not recommended for production use.
+> ⚠️ **Warning:** Nolqu is now in **Beta** stage. Core features are stable. Minor breaking changes may still occur before v1.0.
+
+---
+
+## [0.8.0] — 2026-03-13 (Beta)
+[Compare v0.7.0...v0.8.0](https://github.com/Nadzil123/Nolqu/compare/v0.7.0-alpha...v0.8.0-beta)
+
+### Added
+
+**Garbage Collector — Mark-and-Sweep**
+- Automatic memory management — no manual `free` needed
+- GC runs automatically when heap usage exceeds a threshold (initial: 1 MB)
+- After each collection, threshold grows to 2× surviving heap size
+- Mark phase traverses all roots: stack, call frames, globals, `thrown` value
+- Sweep phase frees all unreachable objects (`ObjString`, `ObjArray`, `ObjFunction`, `ObjNative`)
+- `ObjArray` items and `ObjFunction` constants are recursively marked
+
+**`gc_collect()` builtin**
+- Manually trigger a garbage collection cycle
+- Returns the number of bytes freed
+
+```nolqu
+let freed = gc_collect()
+print freed
+```
+
+**New source file: `src/gc.c` / `src/gc.h`**
+
+### Changed
+
+- Version stage promoted from **Alpha → Beta**
+- Version string: `0.8.0-beta`
+- Heap allocation is now tracked via `nq_bytes_allocated` in `memory.c`
+- `allocObject` in `object.c` checks GC threshold on every allocation
+- `runVM` sets global `nq_gc_vm` pointer so the GC can access roots
+
+### Bug Fixes
+
+- (None)
+
+### Breaking Changes
+
+- (None)
 
 ---
 

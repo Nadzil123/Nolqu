@@ -33,6 +33,7 @@ SOURCES = \
     $(SRCDIR)/ast.c       \
     $(SRCDIR)/parser.c    \
     $(SRCDIR)/compiler.c  \
+    $(SRCDIR)/gc.c        \
     $(SRCDIR)/vm.c        \
     $(SRCDIR)/repl.c
 

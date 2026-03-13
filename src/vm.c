@@ -1,6 +1,7 @@
 #include "vm.h"
 #include "memory.h"
 #include "object.h"
+#include "gc.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -464,6 +465,17 @@ static Value nativeFileLines(int argc, Value* args) {
     free(buf);
     return OBJ_VAL(arr);
 }
+
+// gc_collect() — manually trigger a GC cycle, returns bytes freed
+static Value nativeGcCollect(int argc, Value* args) {
+    (void)argc; (void)args;
+    if (!nq_gc_vm) return NIL_VAL;
+    size_t before = nq_bytes_allocated;
+    nq_collect(nq_gc_vm);
+    size_t after  = nq_bytes_allocated;
+    return NUMBER_VAL((double)(before > after ? before - after : 0));
+}
+
 static void registerNative(VM* vm, const char* name, NativeFn fn, int arity) {
     ObjNative*  native   = newNative(fn, name, arity);
     ObjString*  key      = copyString(name, (int)strlen(name));
@@ -525,6 +537,8 @@ void initVM(VM* vm) {
     registerNative(vm, "file_append", nativeFileAppend,  2);
     registerNative(vm, "file_exists", nativeFileExists,  1);
     registerNative(vm, "file_lines",  nativeFileLines,   1);
+    // GC (v0.8.0)
+    registerNative(vm, "gc_collect",  nativeGcCollect,   0);
 }
 
 void freeVM(VM* vm) {
@@ -652,6 +666,8 @@ static bool callFunction(VM* vm, ObjFunction* fn, int argc) {
 //  Main execution loop
 // ─────────────────────────────────────────────
 InterpretResult runVM(VM* vm, ObjFunction* script, const char* source_path) {
+    nq_gc_vm        = vm;  // register VM for GC trigger
+    g_vm_for_error  = vm;
     vm->source_path = source_path;
     push(vm, OBJ_VAL(script));
     callFunction(vm, script, 0);
