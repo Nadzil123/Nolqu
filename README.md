@@ -8,8 +8,10 @@
  |_| \_|\___/|_|\__,_|\__,_|
                 
 ```
-![version](https://img.shields.io/badge/version-1.0.0-blue)
-![license](https://img.shields.io/badge/license-MIT-green)
+[![Version](https://img.shields.io/github/v/tag/Nadzil123/Nolqu?label=version)](https://github.com/Nadzil123/Nolqu/releases)
+[![License](https://img.shields.io/github/license/Nadzil123/Nolqu)](LICENSE)
+![Language](https://img.shields.io/badge/language-Nolqu-purple)
+![Status](https://img.shields.io/badge/status-stable-brightgreen)
 
 **A small, fast scripting language with its own bytecode VM.**
 
