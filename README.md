@@ -8,6 +8,8 @@
  |_| \_|\___/|_|\__,_|\__,_|
                 
 ```
+![version](https://img.shields.io/badge/version-1.0.0-blue)
+![license](https://img.shields.io/badge/license-MIT-green)
 
 **A small, fast scripting language with its own bytecode VM.**
 
