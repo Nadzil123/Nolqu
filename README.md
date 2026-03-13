@@ -7,7 +7,7 @@
 | |\  | (_) | | (_| | |_| |
 |_| \_|\___/|_|\__, |\__,_|
                |___/
-v0.8.0-beta
+v0.9.0-beta
 ```
 
 Nolqu is a programming language designed so that code reads like plain sentences.

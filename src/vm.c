@@ -9,6 +9,9 @@
 #include <stdarg.h>
 #include <string.h>
 
+// Forward declaration — set in initVM, used by native error helpers
+static VM* g_vm_for_error = NULL;
+
 // ─────────────────────────────────────────────
 //  Native function implementations
 // ─────────────────────────────────────────────
@@ -76,9 +79,17 @@ static Value nativeType(int argc, Value* args) {
 
 // len(arr_or_string) — return length
 static Value nativeLen(int argc, Value* args) {
-    if (argc != 1) return NIL_VAL;
+    if (argc != 1) {
+        if (g_vm_for_error) g_vm_for_error->thrown =
+            OBJ_VAL(copyString("len: expected 1 argument", 24));
+        return NIL_VAL;
+    }
     if (IS_ARRAY(args[0]))  return NUMBER_VAL(AS_ARRAY(args[0])->count);
     if (IS_STRING(args[0])) return NUMBER_VAL(AS_STRING(args[0])->length);
+    char msg[128];
+    snprintf(msg, sizeof(msg), "len: expected string or array, got %s",
+        IS_NUMBER(args[0]) ? "number" : IS_BOOL(args[0]) ? "bool" : "nil");
+    if (g_vm_for_error) g_vm_for_error->thrown = OBJ_VAL(copyString(msg, (int)strlen(msg)));
     return NIL_VAL;
 }
 
@@ -353,7 +364,6 @@ static Value nativeSort(int argc, Value* args) {
 // Cleanest: return a special tagged value. We use a dedicated approach:
 // nativeError sets vm->thrown and returns NIL_VAL; after native dispatch
 // we check vm->thrown.
-static VM* g_vm_for_error = NULL; // set in runVM
 
 static Value nativeError(int argc, Value* args) {
     if (argc < 1) return NIL_VAL;
@@ -476,6 +486,41 @@ static Value nativeGcCollect(int argc, Value* args) {
     return NUMBER_VAL((double)(before > after ? before - after : 0));
 }
 
+// ─────────────────────────────────────────────
+//  stdlib v0.9.0 — Stabilization builtins
+// ─────────────────────────────────────────────
+
+// assert(condition, message) — throw if condition is false
+static Value nativeAssert(int argc, Value* args) {
+    if (argc < 1) return NIL_VAL;
+    if (isTruthy(args[0])) return BOOL_VAL(true);
+    // Condition is false — throw
+    const char* msg = (argc >= 2 && IS_STRING(args[1]))
+        ? AS_CSTRING(args[1]) : "Assertion failed.";
+    if (g_vm_for_error)
+        g_vm_for_error->thrown = OBJ_VAL(copyString(msg, (int)strlen(msg)));
+    return NIL_VAL;
+}
+
+// clock() — seconds since program start (float)
+static Value nativeClock(int argc, Value* args) {
+    (void)argc; (void)args;
+    return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
+}
+
+// mem_usage() — bytes currently allocated on the heap
+static Value nativeMemUsage(int argc, Value* args) {
+    (void)argc; (void)args;
+    return NUMBER_VAL((double)nq_bytes_allocated);
+}
+
+// is_nil(v) / is_num(v) / is_str(v) / is_bool(v) / is_array(v) — type predicates
+static Value nativeIsNil(int argc, Value* args)   { return BOOL_VAL(argc==1 && IS_NIL(args[0]));    }
+static Value nativeIsNum(int argc, Value* args)   { return BOOL_VAL(argc==1 && IS_NUMBER(args[0])); }
+static Value nativeIsStr(int argc, Value* args)   { return BOOL_VAL(argc==1 && IS_STRING(args[0])); }
+static Value nativeIsBool(int argc, Value* args)  { return BOOL_VAL(argc==1 && IS_BOOL(args[0]));   }
+static Value nativeIsArray(int argc, Value* args) { return BOOL_VAL(argc==1 && IS_ARRAY(args[0]));  }
+
 static void registerNative(VM* vm, const char* name, NativeFn fn, int arity) {
     ObjNative*  native   = newNative(fn, name, arity);
     ObjString*  key      = copyString(name, (int)strlen(name));
@@ -539,6 +584,15 @@ void initVM(VM* vm) {
     registerNative(vm, "file_lines",  nativeFileLines,   1);
     // GC (v0.8.0)
     registerNative(vm, "gc_collect",  nativeGcCollect,   0);
+    // stabilization builtins (v0.9.0)
+    registerNative(vm, "assert",      nativeAssert,     -1); // 1 or 2 args
+    registerNative(vm, "clock",       nativeClock,       0);
+    registerNative(vm, "mem_usage",   nativeMemUsage,    0);
+    registerNative(vm, "is_nil",      nativeIsNil,       1);
+    registerNative(vm, "is_num",      nativeIsNum,       1);
+    registerNative(vm, "is_str",      nativeIsStr,       1);
+    registerNative(vm, "is_bool",     nativeIsBool,      1);
+    registerNative(vm, "is_array",    nativeIsArray,     1);
 }
 
 void freeVM(VM* vm) {
@@ -569,19 +623,31 @@ static Value peek(VM* vm, int dist)   { return vm->stack_top[-1 - dist]; }
 void vmRuntimeError(VM* vm, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    fprintf(stderr, NQ_COLOR_RED "\n[ Runtime Error ]" NQ_COLOR_RESET);
-    if (vm->source_path) fprintf(stderr, " %s", vm->source_path);
 
+    fprintf(stderr, NQ_COLOR_RED "\n[ Runtime Error ]" NQ_COLOR_RESET);
+
+    // Print stack trace (innermost first)
     for (int i = vm->frame_count - 1; i >= 0; i--) {
         CallFrame*   frame = &vm->frames[i];
         ObjFunction* fn    = frame->function;
         int offset = (int)(frame->ip - fn->chunk->code - 1);
-        int line   = fn->chunk->lines[offset];
-        fprintf(stderr, ":%d\n", line);
-        if (fn->name) fprintf(stderr, "  in function '%s'\n", fn->name->chars);
+        if (offset < 0) offset = 0;
+        int line = fn->chunk->lines[offset];
+        if (i == vm->frame_count - 1) {
+            // Innermost frame — print file:line
+            const char* src = vm->source_path ? vm->source_path : "<script>";
+            fprintf(stderr, " %s:%d\n", src, line);
+        } else {
+            // Outer frames — indent callchain
+            if (fn->name)
+                fprintf(stderr, "  called from '%s' line %d\n", fn->name->chars, line);
+        }
+        if (fn->name)
+            fprintf(stderr, NQ_COLOR_YELLOW "  in function '%s'" NQ_COLOR_RESET "\n",
+                    fn->name->chars);
     }
 
-    fprintf(stderr, "  ");
+    fprintf(stderr, NQ_COLOR_RED "  Error: " NQ_COLOR_RESET);
     vfprintf(stderr, fmt, args);
     fprintf(stderr, "\n\n");
     va_end(args);
@@ -609,14 +675,6 @@ static bool throwError(VM* vm, Value error_val) {
 // ─────────────────────────────────────────────
 //  Type helpers
 // ─────────────────────────────────────────────
-static bool checkNumber(VM* vm, Value v, const char* hint) {
-    if (IS_NUMBER(v)) return true;
-    vmRuntimeError(vm,
-        "Expected a number, got %s.\n  Hint: %s",
-        IS_STRING(v) ? "string" : IS_BOOL(v) ? "bool" : IS_NIL(v) ? "nil" : "object",
-        hint);
-    return false;
-}
 
 static ObjString* valueToString(Value v) {
     if (IS_STRING(v)) return AS_STRING(v);
@@ -665,6 +723,40 @@ static bool callFunction(VM* vm, ObjFunction* fn, int argc) {
 // ─────────────────────────────────────────────
 //  Main execution loop
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+//  "Did you mean?" — Levenshtein distance suggestion
+// ─────────────────────────────────────────────
+static int levenshtein(const char* a, int la, const char* b, int lb) {
+    if (la > 32 || lb > 32) return 99;
+    int prev[33], curr[33];
+    for (int j = 0; j <= lb; j++) prev[j] = j;
+    for (int i = 1; i <= la; i++) {
+        curr[0] = i;
+        for (int j = 1; j <= lb; j++) {
+            int cost = (a[i-1] == b[j-1]) ? 0 : 1;
+            int del  = prev[j]   + 1;
+            int ins  = curr[j-1] + 1;
+            int sub  = prev[j-1] + cost;
+            curr[j]  = del < ins ? (del < sub ? del : sub) : (ins < sub ? ins : sub);
+        }
+        for (int j = 0; j <= lb; j++) prev[j] = curr[j];
+    }
+    return prev[lb];
+}
+
+static const char* didYouMean(VM* vm, const char* name) {
+    int best_dist   = 3;
+    const char* best = NULL;
+    int nlen = (int)strlen(name);
+    for (int i = 0; i < vm->globals.capacity; i++) {
+        Entry* e = &vm->globals.entries[i];
+        if (!e->key) continue;
+        int d = levenshtein(name, nlen, e->key->chars, e->key->length);
+        if (d < best_dist) { best_dist = d; best = e->key->chars; }
+    }
+    return best;
+}
+
 InterpretResult runVM(VM* vm, ObjFunction* script, const char* source_path) {
     nq_gc_vm        = vm;  // register VM for GC trigger
     g_vm_for_error  = vm;
@@ -722,10 +814,17 @@ InterpretResult runVM(VM* vm, ObjFunction* script, const char* source_path) {
                 ObjString* name = AS_STRING(READ_CONST());
                 Value val;
                 if (!tableGet(&vm->globals, name, &val)) {
-                    vmRuntimeError(vm,
-                        "Undefined variable '%s'.\n"
-                        "  Hint: Did you declare it with 'let %s = ...'?",
-                        name->chars, name->chars);
+                    const char* suggestion = didYouMean(vm, name->chars);
+                    if (suggestion)
+                        vmRuntimeError(vm,
+                            "Undefined variable '%s'. Did you mean '%s'?\n"
+                            "  Hint: Use 'let %s = ...' to declare a variable.",
+                            name->chars, suggestion, name->chars);
+                    else
+                        vmRuntimeError(vm,
+                            "Undefined variable '%s'.\n"
+                            "  Hint: Use 'let %s = ...' to declare it first.",
+                            name->chars, name->chars);
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 push(vm, val);
@@ -769,8 +868,10 @@ InterpretResult runVM(VM* vm, ObjFunction* script, const char* source_path) {
             }
             case OP_NEGATE: {
                 Value v = peek(vm, 0);
-                if (!checkNumber(vm, v, "Use the minus sign only on numbers. Example: -5"))
-                    return INTERPRET_RUNTIME_ERROR;
+                if (!IS_NUMBER(v)) {
+                    THROW_ERROR("Cannot negate a %s — only numbers can be negated. Example: let x = -5",
+                        IS_STRING(v) ? "string" : IS_BOOL(v) ? "bool" : IS_NIL(v) ? "nil" : "object");
+                }
                 pop(vm); push(vm, NUMBER_VAL(-AS_NUMBER(v)));
                 break;
             }
@@ -782,19 +883,23 @@ InterpretResult runVM(VM* vm, ObjFunction* script, const char* source_path) {
             case OP_EQ:  { Value b = pop(vm), a = pop(vm); push(vm, BOOL_VAL( valuesEqual(a, b))); break; }
             case OP_NEQ: { Value b = pop(vm), a = pop(vm); push(vm, BOOL_VAL(!valuesEqual(a, b))); break; }
             case OP_LT: {
-                if (!IS_NUMBER(peek(vm,0)) || !IS_NUMBER(peek(vm,1))) { vmRuntimeError(vm, "Operator '<' only works on numbers."); return INTERPRET_RUNTIME_ERROR; }
+                if (!IS_NUMBER(peek(vm,0)) || !IS_NUMBER(peek(vm,1)))
+                    THROW_ERROR("Operator '<' only works on numbers — use it like: a < b where both are numbers.");
                 double b = AS_NUMBER(pop(vm)), a = AS_NUMBER(pop(vm)); push(vm, BOOL_VAL(a < b)); break;
             }
             case OP_GT: {
-                if (!IS_NUMBER(peek(vm,0)) || !IS_NUMBER(peek(vm,1))) { vmRuntimeError(vm, "Operator '>' only works on numbers."); return INTERPRET_RUNTIME_ERROR; }
+                if (!IS_NUMBER(peek(vm,0)) || !IS_NUMBER(peek(vm,1)))
+                    THROW_ERROR("Operator '>' only works on numbers — use it like: a > b where both are numbers.");
                 double b = AS_NUMBER(pop(vm)), a = AS_NUMBER(pop(vm)); push(vm, BOOL_VAL(a > b)); break;
             }
             case OP_LTE: {
-                if (!IS_NUMBER(peek(vm,0)) || !IS_NUMBER(peek(vm,1))) { vmRuntimeError(vm, "Operator '<=' only works on numbers."); return INTERPRET_RUNTIME_ERROR; }
+                if (!IS_NUMBER(peek(vm,0)) || !IS_NUMBER(peek(vm,1)))
+                    THROW_ERROR("Operator '<=' only works on numbers — use it like: a <= b where both are numbers.");
                 double b = AS_NUMBER(pop(vm)), a = AS_NUMBER(pop(vm)); push(vm, BOOL_VAL(a <= b)); break;
             }
             case OP_GTE: {
-                if (!IS_NUMBER(peek(vm,0)) || !IS_NUMBER(peek(vm,1))) { vmRuntimeError(vm, "Operator '>=' only works on numbers."); return INTERPRET_RUNTIME_ERROR; }
+                if (!IS_NUMBER(peek(vm,0)) || !IS_NUMBER(peek(vm,1)))
+                    THROW_ERROR("Operator '>=' only works on numbers — use it like: a >= b where both are numbers.");
                 double b = AS_NUMBER(pop(vm)), a = AS_NUMBER(pop(vm)); push(vm, BOOL_VAL(a >= b)); break;
             }
             case OP_NOT: { Value v = pop(vm); push(vm, BOOL_VAL(!isTruthy(v))); break; }

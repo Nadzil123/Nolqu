@@ -93,14 +93,17 @@ static void sweep(void) {
 }
 
 // ─────────────────────────────────────────────
-//  Remove entries from globals that have been collected
+//  Remove dead interned strings from the string table
 // ─────────────────────────────────────────────
 
-static void tableRemoveWhite(Table* table) {
-    for (int i = 0; i < table->capacity; i++) {
-        Entry* e = &table->entries[i];
-        if (e->key != NULL && !e->key->obj.marked) {
-            tableDelete(table, e->key);
+static void removeWhiteStrings(void) {
+    StringTable* t = &nq_string_table;
+    for (int i = 0; i < t->capacity; i++) {
+        ObjString* s = t->entries[i];
+        if (s != NULL && !s->obj.marked) {
+            // Clear the slot — the string itself will be freed by sweep()
+            t->entries[i] = NULL;
+            t->count--;
         }
     }
 }
@@ -113,9 +116,8 @@ void nq_collect(VM* vm) {
     size_t before = nq_bytes_allocated;
 
     markRoots(vm);
-    // Note: string interning table strings reachable via globals/stack
-    // are already marked — weak references to interned strings would
-    // need tableRemoveWhite on the string table too; skip for now.
+    // Prune dead interned strings before sweep so sweep can safely free them
+    removeWhiteStrings();
     sweep();
 
     // Grow threshold: 2x bytes surviving after collection

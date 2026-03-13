@@ -21,7 +21,6 @@ static void errorAt(Parser* p, Token* tok, const char* msg) {
 }
 
 static void errorAtCurrent(Parser* p, const char* msg) { errorAt(p, &p->current,  msg); }
-static void errorAtPrev(Parser* p,    const char* msg) { errorAt(p, &p->previous, msg); }
 
 static void advance(Parser* p) {
     p->previous = p->current;
@@ -545,5 +544,3 @@ ASTNode* parse(Parser* p) {
     return root;
 }
 
-// Suppress unused warning
-static void _unused(void) { (void)errorAtPrev; }

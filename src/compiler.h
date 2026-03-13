@@ -13,6 +13,8 @@ typedef struct {
     char  name[64];
     int   depth;
     bool  initialized;
+    bool  used;       // set when OP_GET_LOCAL references this slot
+    int   decl_line;  // for "unused variable" warning
 } Local;
 
 // ─────────────────────────────────────────────

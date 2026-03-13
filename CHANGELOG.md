@@ -1,6 +1,56 @@
 # Changelog
 
-> ⚠️ **Warning:** Nolqu is now in **Beta** stage. Core features are stable. Minor breaking changes may still occur before v1.0.
+> ⚠️ **Warning:** Nolqu is in **Beta** stage. Core features are stable. Minor breaking changes may still occur before v1.0.
+
+---
+
+## [0.9.0] — 2026-03-13 (Beta)
+[Compare v0.8.0...v0.9.0](https://github.com/Nadzil123/Nolqu/compare/v0.8.0-beta...v0.9.0-beta)
+
+### Added
+
+**New Built-in Functions**
+
+- `assert(condition [, message])` — throws if condition is false; integrates with `try/catch`
+- `clock()` — returns seconds elapsed since program start as a float
+- `mem_usage()` — returns bytes currently allocated on the heap
+- `is_nil(v)` / `is_num(v)` / `is_str(v)` / `is_bool(v)` / `is_array(v)` — type predicate functions
+
+**"Did you mean?" for Undefined Variables**
+- When referencing an undefined variable, the runtime now suggests the closest declared name using Levenshtein distance (threshold: 3 edits)
+- Example: `print helo` → `Undefined variable 'helo'. Did you mean 'hello'?`
+
+**Compiler Warning: Unused Local Variables**
+- The compiler now emits a warning when a local variable is declared but never read
+- Suppressed for variables whose name starts with `_` (e.g. `_unused`)
+- Suppressed for internal compiler slots (empty name)
+
+**Improved REPL**
+- `help` command — lists all keywords, builtins, and stdlib modules
+- `clear` command — clears the terminal screen
+- Proportional depth indicator: `  …` indented per block level
+- Better VM state reset after runtime errors (try stack also cleared)
+- REPL buffer heap-allocated (was stack-allocated, risked overflow on large pastes)
+
+**Improved Error Messages**
+- All errors now show `file:line` on the first line clearly
+- Stack trace shows call chain with yellow function names
+- Comparison operator errors (`<`, `>`, `<=`, `>=`) are now catchable via `try/catch`
+- Negation (`-`) error is now catchable and shows the actual type received
+
+### Changed
+
+- Version bumped to `0.9.0-beta`
+- `nq help` output updated with complete builtin and stdlib listing
+- Unused `checkNumber` helper removed from `vm.c`
+
+### Bug Fixes
+
+- REPL: VM try-stack and `thrown` value now properly reset after a runtime error, preventing stale state from affecting subsequent lines
+
+### Breaking Changes
+
+- (None)
 
 ---
 

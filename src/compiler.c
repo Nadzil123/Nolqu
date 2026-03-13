@@ -58,7 +58,10 @@ static uint8_t identConst(const char* name, int line) {
 
 static int resolveLocal(CompilerCtx* ctx, const char* name) {
     for (int i = ctx->local_count - 1; i >= 0; i--)
-        if (strcmp(ctx->locals[i].name, name) == 0) return i;
+        if (strcmp(ctx->locals[i].name, name) == 0) {
+            ctx->locals[i].used = true;
+            return i;
+        }
     return -1;
 }
 
@@ -72,6 +75,8 @@ static void addLocal(const char* name, int line) {
     local->name[63]    = '\0';
     local->depth       = current->scope_depth;
     local->initialized = false;
+    local->used        = false;
+    local->decl_line   = line;
 }
 
 static void beginScope(void) {
@@ -80,9 +85,16 @@ static void beginScope(void) {
 
 static void endScope(int line) {
     current->scope_depth--;
-    // Pop all locals that belong to the scope we just left
+    // Warn about unused locals (skip internal slots: empty name, underscore prefix)
     while (current->local_count > 0 &&
            current->locals[current->local_count - 1].depth > current->scope_depth) {
+        Local* loc = &current->locals[current->local_count - 1];
+        if (!loc->used && loc->name[0] != '\0' && loc->name[0] != '_') {
+            fprintf(stderr,
+                NQ_COLOR_YELLOW "[ Warning ]" NQ_COLOR_RESET
+                " line %d: Local variable '%s' is declared but never used.\n",
+                loc->decl_line, loc->name);
+        }
         emit(OP_POP, line);
         current->local_count--;
     }

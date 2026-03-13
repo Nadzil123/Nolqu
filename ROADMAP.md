@@ -46,13 +46,8 @@ Mark-and-sweep GC. Automatic trigger at 1 MB threshold, grows to 2× surviving h
 
 ---
 
-## v0.9 — Stabilization
-**Focus:** Make the runtime solid before 1.0.
-
-- VM performance optimizations
-- Improved error messages across all edge cases
-- Compiler refactor for cleaner codegen
-- Final stdlib review and consistency pass
+## ✅ v0.9.0 — Stabilization *(Beta)*
+New builtins: `assert`, `clock`, `mem_usage`, `is_nil/num/str/bool/array`. "Did you mean?" suggestions for undefined variables (Levenshtein distance). Compiler warning for unused local variables (`_` prefix suppresses). Improved REPL: `help`, `clear`, proportional depth prompt, heap-allocated buffer, clean VM reset. Upgraded error messages: `file:line` format, colored call chain, comparison errors catchable. Zero warnings build.
 
 ---
 
@@ -87,6 +82,6 @@ Mark-and-sweep GC. Automatic trigger at 1 MB threshold, grows to 2× surviving h
 | v0.6 | Error handling ✅ |
 | v0.7 | File I/O ✅ |
 | v0.8 | Garbage collector ✅ |
-| v0.9 | Stabilization |
+| v0.9 | Stabilization ✅ |
 | v1.0.0-rc1 | Release candidate |
 | v1.0.0 | Stable release 🎉 |
