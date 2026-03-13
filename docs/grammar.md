@@ -1,5 +1,9 @@
 # Nolqu Language Grammar — v1.0.0
-## Formal Grammar Specification (EBNF)
+
+Formal EBNF grammar specification for the Nolqu programming language.
+
+For a readable, example-based language reference see [language.md](language.md).
+For VM internals and bytecode see [vm_design.md](vm_design.md).
 
 ---
 

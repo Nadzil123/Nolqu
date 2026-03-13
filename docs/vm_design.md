@@ -1,5 +1,13 @@
 # Nolqu VM Design — v1.0.0
 
+Internal architecture reference for contributors and embedders.
+
+For the language reference see [language.md](language.md).
+For the formal grammar see [grammar.md](grammar.md).
+For the C/C++ embedding API see [embedding.md](embedding.md).
+
+---
+
 ## Pipeline Overview
 
 ```
