@@ -114,26 +114,6 @@ nq help         # full built-in reference
 
 ---
 
-## Git Tag
-
-```bash
-git tag -a v1.0.0 \
-  -m "Nolqu v1.0.0 — First stable release" \
-  -m "" \
-  -m "Bug fixes:" \
-  -m "  - vm.c: 7 native fns used malloc for takeString buffers (GC underflow)" \
-  -m "  - vm.c: nativeFileLines free(buf) → nq_realloc" \
-  -m "" \
-  -m "Improvements:" \
-  -m "  - nq_embed: macro dispatch table → C++ template trampolines (limit 16→64)" \
-  -m "  - docs: README, grammar.md, vm_design.md completed" \
-  -m "  - tests: all 4 test files rewritten with full coverage" \
-  -m "" \
-  -m "No syntax changes. No bytecode changes. No API changes."
-```
-
----
-
 ## License
 
 MIT — free to use, modify, and distribute.
