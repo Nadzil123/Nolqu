@@ -153,3 +153,8 @@ C++17.
 ## License
 
 MIT — free to use, modify, and distribute. See [LICENSE](LICENSE).
+
+## Name Notice
+
+"Nolqu" and "NolquLang" refer to the original programming language project created by Nadzil.  
+Forks must use a different name if redistributed publicly to avoid confusion with the official project.
