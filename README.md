@@ -4,7 +4,6 @@
 <img src="assets/Banner.png">
 </p>
                 
-![Language](https://img.shields.io/badge/language-Nolqu-purple)
 [![Version](https://img.shields.io/github/v/tag/Nadzil123/Nolqu?label=version)](https://github.com/Nadzil123/Nolqu/tags)
 [![License](https://img.shields.io/github/license/Nadzil123/Nolqu)](LICENSE)
 ![Status](https://img.shields.io/badge/status-stable-brightgreen)
